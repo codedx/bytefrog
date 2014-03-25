@@ -22,3 +22,7 @@ This file.
  - Eclipse Users:
    - Within SBT, run `eclipse` to generate Eclipse project files.
    - In Eclipse, import the generated projects to your workspace.
+
+##License
+
+Bytefrog is made available under the terms of the Apache License 2.0. See the LICENSE file that accompanies this distribution for the full text of the license.
