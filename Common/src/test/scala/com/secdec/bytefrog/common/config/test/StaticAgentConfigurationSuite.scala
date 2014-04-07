@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-package com.secdec.bytefrog.agent.test
+package com.secdec.bytefrog.common.config.test
 
 import org.scalatest.FunSpec
 import org.scalatest.GivenWhenThen
@@ -66,11 +66,21 @@ class StaticAgentConfigurationSuite extends FunSpec with ShouldMatchers {
 	}
 
 	describe("StaticAgentConfiguration option string output") {
-		val testConfig = new StaticAgentConfiguration("host", 1234, "logFile")
+		val testConfig = new StaticAgentConfiguration("host", 1234, "logFile", 30)
 
 		it("should return the correct option string when toOptionString is called") {
 			val result = testConfig.toOptionString
-			result should equal("host:1234;logFile")
+			result should equal("host:1234;log=logFile;connectTimeout=30")
+		}
+
+		it("should be able to load option strings from toOptionString") {
+			val optStr = testConfig.toOptionString
+			val result = StaticAgentConfiguration.parseOptionString(optStr)
+
+			result.getHqHost should equal("host")
+			result.getHqPort should equal(1234)
+			result.getLogFilename should equal("logFile")
+			result.getConnectTimeout should equal(30)
 		}
 	}
 }
