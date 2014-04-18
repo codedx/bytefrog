@@ -16,6 +16,8 @@ Contains the project contents for the "Headquarters". This project depends on "c
 **readme.md**
 This file.
 
+More technical information about Bytefrog is available on the [wiki](//github.com/secdec/bytefrog/wiki).
+
 ## Setup
 
  - Run SBT from this directory. There are projects here for the tracer components. Run `assembly` on the `Agent` project to package up the tracer agent jar. The other projects are libraries meant for consumption by other componenents.
