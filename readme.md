@@ -2,6 +2,8 @@
 
 Bytefrog is an execution tracing framework for the Java Virtual Machine. It consists of a Java agent to perform bytecode instrumentation and perform the actual tracing and a receiver component for collecting and processing the trace data.
 
+More documentation on Bytefrog is available in the [wiki](//github.com/secdec/bytefrog/wiki).
+
 ## Layout
 
 **agent/**
@@ -15,8 +17,6 @@ Contains the project contents for the "Headquarters". This project depends on "c
 
 **readme.md**
 This file.
-
-More technical information about Bytefrog is available on the [wiki](//github.com/secdec/bytefrog/wiki).
 
 ## Setup
 
