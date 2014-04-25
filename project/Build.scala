@@ -28,7 +28,7 @@ object BuildDef extends Build {
 
 	val baseCompilerSettings = Seq(
 		scalacOptions := List("-deprecation", "-unchecked", "-feature", "-target:jvm-1.6"),
-		scalaVersion := "2.10.1"
+		scalaVersion := "2.10.4"
 	)
 
 	lazy val Shared = JavaOnlyProject("Common", file("common"))
@@ -81,7 +81,7 @@ object BuildDef extends Build {
 		)
 
 	def useScalaTest = Seq(
-		scalaVersion := "2.10.1",
+		scalaVersion := "2.10.4",
 		libraryDependencies += scalaMock
 		// this ^ will automatically include the appropriate scalatest dependency too
 	)
