@@ -4,6 +4,8 @@ Bytefrog is an execution tracing framework for the Java Virtual Machine. It cons
 
 More documentation on Bytefrog is available in the [wiki](//github.com/secdec/bytefrog/wiki).
 
+<sub>[![Build Status](https://travis-ci.org/secdec/bytefrog.svg?branch=master)](https://travis-ci.org/secdec/bytefrog)</sub> (master branch)
+
 ## Layout
 
 **agent/**
