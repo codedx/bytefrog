@@ -28,7 +28,11 @@ object BuildDef extends Build {
 
 	val baseCompilerSettings = Seq(
 		scalacOptions := List("-deprecation", "-unchecked", "-feature", "-target:jvm-1.6"),
-		scalaVersion := "2.10.4"
+		scalaVersion := "2.10.4",
+		// note: -Xlint:-options disables warnings about compiling for Java 6 on Java 7
+		// without the boot classpath. We're depending on the travis openjdk6 matrix
+		// target to pick up on any potential issues with Java 6 support.
+		javacOptions := List("-source", "1.6", "-target", "1.6", "-Xlint:-options")
 	)
 
 	lazy val Shared = JavaOnlyProject("Common", file("common"))
@@ -38,6 +42,7 @@ object BuildDef extends Build {
 
 	lazy val Agent = JavaOnlyProject("Agent", file("agent"))
 		.dependsOn(Shared)
+		.settings(baseCompilerSettings: _*)
 		.settings(assemblySettings: _*)
 		.settings(useScalaTest: _*)
 		.settings(
