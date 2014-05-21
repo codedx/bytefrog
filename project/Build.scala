@@ -77,6 +77,10 @@ object BuildDef extends Build {
 		.settings(baseCompilerSettings: _*)
 		.aggregate(Shared, Agent, HQ)
 
+	lazy val Java6Stack = Project("Tracer-Stack-J6", file("."))
+		.settings(baseCompilerSettings: _*)
+		.aggregate(Shared, Agent)
+
 	def JavaOnlyProject(name: String, root: File) = Project(name, root)
 		.settings(
 			EclipseKeys.projectFlavor in Compile := EclipseProjectFlavor.Java,
