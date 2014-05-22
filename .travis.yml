@@ -6,7 +6,7 @@ jdk:
   - openjdk7
   - openjdk6
 # Check if we're on Java 6. If so, only test Agent and Shared.
-script: "if [[ $(javac -version 2>&1) =~ javac\ 1\.6\..* ]]; then sbt ++$TRAVIS_SCALA_VERSION Common/test Agent/test; else sbt ++$TRAVIS_SCALA_VERSION test; fi"
+script: "if [[ $(javac -version 2>&1) =~ javac\\ 1\\.6\\..* ]]; then sbt ++$TRAVIS_SCALA_VERSION Common/test Agent/test; else sbt ++$TRAVIS_SCALA_VERSION test; fi"
 notifications:
   email:
     - secure: "bnZOTWy67FbOJXZ6Luvrez2zgcitYxuUeyr6apFX9hSCTAJ8HrcWwAxfV/FW/L/W06DqzS9LbJ2COi4ErMmjHS2Dj5oeEnmWhF/H7g/IijL1E++n//C8u8g3buf04ac1sG126Wc7YcyJfGohUBAPuZ7Jb6zwiLLH8lt0jTpr0SQ="
