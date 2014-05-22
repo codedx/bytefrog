@@ -27,7 +27,7 @@ import sbtassembly.Plugin._
 object BuildDef extends Build {
 
 	val baseCompilerSettings = Seq(
-		scalacOptions := List("-deprecation", "-unchecked", "-feature", "-target:jvm-1.6"),
+		scalacOptions := List("-deprecation", "-unchecked", "-feature"),
 		scalaVersion := "2.10.4",
 		// note: -Xlint:-options disables warnings about compiling for Java 6 on Java 7
 		// without the boot classpath. We're depending on the travis openjdk6 matrix
@@ -76,10 +76,6 @@ object BuildDef extends Build {
 	lazy val Stack = Project("Tracer-Stack", file("."))
 		.settings(baseCompilerSettings: _*)
 		.aggregate(Shared, Agent, HQ)
-
-	lazy val Java6Stack = Project("Tracer-Stack-J6", file("."))
-		.settings(baseCompilerSettings: _*)
-		.aggregate(Shared, Agent)
 
 	def JavaOnlyProject(name: String, root: File) = Project(name, root)
 		.settings(
