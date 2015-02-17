@@ -45,10 +45,9 @@ object BuildDef extends Build {
 		.settings(baseCompilerSettings: _*)
 		.settings(assemblySettings: _*)
 		.settings(useScalaTest: _*)
+		.settings(Repackager("asm", asm, Repackager.Rename("org.objectweb.asm.**", "com.secdec.bytefrog.asm.@1")): _*)
 		.settings(
 			version := "1.0",
-
-			libraryDependencies ++= asm,
 
 			assemblyJarName in assembly := "bytefrog-tracer.jar",
 			packageOptions in assembly <+= (assemblyJarName in assembly) map { jarName =>
