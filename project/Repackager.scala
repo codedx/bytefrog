@@ -31,8 +31,6 @@ class Repackager(
 ) {
 	val Repackager = config(s"repackager-$name").hide
 
-	val javaPath = SettingKey[File]("java-path")
-
 	val jarjarRunner = TaskKey[JarJarRunner]("jarjar-runner")
 	val repackage = TaskKey[Seq[File]]("repackage")
 
@@ -40,11 +38,10 @@ class Repackager(
 		ivyConfigurations += Repackager,
 		libraryDependencies ++= deps.map(_ % Repackager),
 
-		javaPath in Repackager := file(System getProperty "java.home") / "bin/java",
-
 		jarjarRunner in Repackager := {
 			val taskStreams = streams.value
-			JarJarRunner((javaPath in Repackager).value, taskStreams.cacheDirectory, taskStreams.log)
+			val java = ((javaHome in Repackager).value getOrElse file(System getProperty "java.home")) / "bin" / "java"
+			JarJarRunner(java, taskStreams.cacheDirectory, taskStreams.log)
 		},
 
 		repackage in Repackager <<= Def.task {
