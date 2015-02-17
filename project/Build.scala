@@ -21,8 +21,8 @@ import sbt._
 import Keys._
 import Dependencies._
 import com.typesafe.sbteclipse.core.EclipsePlugin._
-import sbtassembly.Plugin._
-	import AssemblyKeys._
+import sbtassembly.AssemblyPlugin._
+import sbtassembly.AssemblyKeys._
 
 object BuildDef extends Build {
 
@@ -50,8 +50,8 @@ object BuildDef extends Build {
 
 			libraryDependencies ++= asm,
 
-			jarName in assembly := "bytefrog-tracer.jar",
-			packageOptions in assembly <+= (jarName in assembly) map { jarName =>
+			assemblyJarName in assembly := "bytefrog-tracer.jar",
+			packageOptions in assembly <+= (assemblyJarName in assembly) map { jarName =>
 				Package.ManifestAttributes(
 					"Premain-Class" -> "com.secdec.bytefrog.agent.javaagent.JavaAgent",
 					"Agent-Class" -> "com.secdec.bytefrog.agent.javaagent.JavaAgent",
