@@ -22,7 +22,7 @@ import Keys._
 import Dependencies._
 import com.typesafe.sbteclipse.core.EclipsePlugin._
 import sbtassembly.AssemblyPlugin._
-import sbtassembly.AssemblyKeys._
+import sbtassembly.AssemblyPlugin.autoImport._
 
 object BuildDef extends Build {
 
