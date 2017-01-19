@@ -52,7 +52,7 @@ class JarJarRunner(java: File, cacheDir: File, logger: Logger) {
 }
 
 object JarJarRunner {
-	private[JarJarRunner] val url = new URL("https://jarjar.googlecode.com/files/jarjar-1.4.jar")
+	private[JarJarRunner] val url = new URL("https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/jarjar/jarjar-1.4.jar")
 
 	def apply(java: File, cacheDir: File, logger: Logger) = new JarJarRunner(java, cacheDir, logger)
 }
