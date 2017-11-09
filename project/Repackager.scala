@@ -1,26 +1,7 @@
-/*
- * bytefrog: a tracing framework for the JVM. For more information
- * see http://code-pulse.com/bytefrog
- *
- * Copyright (C) 2014 Applied Visions - http://securedecisions.avi.com
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 import sbt._
 import Keys._
 
-/** Repackages a dependency, so as to avoid collisions in tracee applications.
+/** Repackages a dependency using Jar Jar Links.
   *
   * @author robertf
   */
@@ -29,31 +10,27 @@ class Repackager(
 	deps: Seq[ModuleID],
 	rules: Repackager.Rule*
 ) {
-	val Repackager = config(s"repackager-$name").hide
+	import Repackager.{ jarjarRunner, repackage }
 
-	val jarjarRunner = TaskKey[JarJarRunner]("jarjar-runner")
-	val repackage = TaskKey[Seq[File]]("repackage")
+	val RepackagerConfig = config(s"repackager-$name").hide
 
 	val settings = Seq(
-		ivyConfigurations += Repackager,
-		libraryDependencies ++= deps.map(_ % Repackager),
+		ivyConfigurations += RepackagerConfig,
+		libraryDependencies ++= deps.map(_ % RepackagerConfig),
 
-		jarjarRunner in Repackager := {
-			val taskStreams = streams.value
-			val java = ((javaHome in Repackager).value getOrElse file(System getProperty "java.home")) / "bin" / "java"
-			JarJarRunner(java, taskStreams.cacheDirectory, taskStreams.log)
-		},
+		jarjarRunner in RepackagerConfig := JarJarRunner.asTask(javaHome in RepackagerConfig).value,
 
-		repackage in Repackager <<= Def.task {
+		repackage in RepackagerConfig := {
 			val taskStreams = streams.value
 			val log = taskStreams.log
 			val cache = taskStreams.cacheDirectory
 
 			val outDir = target.value / s"repackaged-$name"
-			val jjRunner = (jarjarRunner in Repackager).value
+			val jjRunner = (jarjarRunner in RepackagerConfig).value
 
 			outDir.mkdirs
 
+			//TODO: make cache dependent on rules as well?
 			val cachedRepackage = FileFunction.cached(cache / s"repackage-$name", inStyle = FilesInfo.lastModified, outStyle = FilesInfo.exists) { (jars: Set[File]) =>
 				IO.withTemporaryFile("jarjar-", ".rules") { ruleFile =>
 					IO.writeLines(ruleFile, rules.map(_.line))
@@ -71,18 +48,16 @@ class Repackager(
 				}
 			}
 
-			cachedRepackage(Classpaths.managedJars(Repackager, classpathTypes.value, update.value).map(_.data).toSet).toSeq
+			cachedRepackage(Classpaths.managedJars(RepackagerConfig, classpathTypes.value, update.value).map(_.data).toSet).toSeq
 		},
 
-		externalDependencyClasspath in Compile <++= repackage in Repackager,
-		externalDependencyClasspath in Test <++= repackage in Repackager,
-		externalDependencyClasspath in Runtime <++= repackage in Repackager
+		exportedProducts in Compile ++= (repackage in RepackagerConfig).value
 	)
 }
 
 object Repackager {
-	def apply(name: String, deps: Seq[ModuleID], rules: Rule*) =
-		new Repackager(name, deps, rules: _*).settings
+	def apply(name: String, deps: Seq[ModuleID], rules: Rule*) = new Repackager(name, deps, rules: _*)
+	def apply(name: String, dep: ModuleID, rules: Rule*) = new Repackager(name, Seq(dep), rules: _*)
 
 	sealed trait Rule { def line: String }
 
@@ -97,4 +72,8 @@ object Repackager {
 	case class Keep(pattern: String) extends Rule {
 		def line = s"keep $pattern"
 	}
+
+
+	val jarjarRunner = TaskKey[JarJarRunner]("jarjar-runner")
+	val repackage = TaskKey[Seq[File]]("repackage")
 }
