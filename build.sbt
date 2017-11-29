@@ -8,7 +8,6 @@ val shared = Seq(
 val javaOnly = Seq(
 	autoScalaLibrary := false,
 	crossPaths := false
-	// unmanagedSourceDirectories in Compile <<= (javaSource in Compile) { _ :: Nil }
 )
 
 val withTesting = Seq(
@@ -17,43 +16,34 @@ val withTesting = Seq(
 	libraryDependencies += Dependencies.scalaMock
 )
 
-lazy val RepackagedAsm = project
-	.settings(
-		shared,
-		javaOnly,
-		Repackager("asm", Dependencies.asm, Repackager.Rename("org.objectweb.asm.**", "com.codedx.bytefrog.thirdparty.asm.@1")).settings
-	)
-
-lazy val RepackagedMinlog = project
-	.settings(
-		shared,
-		javaOnly,
-		Repackager("minlog", Dependencies.minlog, Repackager.Rename("com.esotericsoftware.minlog.**", "com.codedx.bytefrog.thirdparty.minlog.@1")).settings
-	)
-
 lazy val Instrumentation = (project in file("instrumentation"))
-	.dependsOn(RepackagedAsm)
 	.settings(
 		shared,
 		javaOnly,
-		withTesting
+		withTesting,
+
+		libraryDependencies ++= Dependencies.asm
 	)
 
 lazy val FilterInjector = (project in file("filter-injector"))
-	.dependsOn(RepackagedAsm, RepackagedMinlog, Util)
-	.settings(
-		shared,
-		javaOnly
-	)
-
-lazy val Util = (project in file("util"))
-	.dependsOn(RepackagedAsm, RepackagedMinlog)
+	.dependsOn(Util)
 	.settings(
 		shared,
 		javaOnly,
-		withTesting
+
+		libraryDependencies ++= Dependencies.asm,
+		libraryDependencies += Dependencies.minlog
+	)
+
+lazy val Util = (project in file("util"))
+	.settings(
+		shared,
+		javaOnly,
+		withTesting,
+
+		libraryDependencies ++= Dependencies.asm,
+		libraryDependencies += Dependencies.minlog
 	)
 
 lazy val Stack = (project in file("."))
-	.settings(JarJarRunner.globalSettings)
-	.aggregate(RepackagedAsm, RepackagedMinlog, Instrumentation, FilterInjector, Util)
+	.aggregate(Instrumentation, FilterInjector, Util)

@@ -19,7 +19,7 @@
 package com.codedx.bytefrog.instrumentation.handler;
 
 import com.codedx.bytefrog.instrumentation.MethodInspector;
-import com.codedx.bytefrog.thirdparty.asm.MethodVisitor;
+import org.objectweb.asm.MethodVisitor;
 
 /** TraceHandler is an adapter for building bytecode to inject trace handler calls.
   *

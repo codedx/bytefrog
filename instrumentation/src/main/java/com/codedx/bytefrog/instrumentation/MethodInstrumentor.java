@@ -20,12 +20,12 @@ package com.codedx.bytefrog.instrumentation;
 
 import com.codedx.bytefrog.instrumentation.handler.TraceHandler;
 
-import com.codedx.bytefrog.thirdparty.asm.Label;
-import com.codedx.bytefrog.thirdparty.asm.Handle;
-import com.codedx.bytefrog.thirdparty.asm.MethodVisitor;
-import com.codedx.bytefrog.thirdparty.asm.Opcodes;
-import com.codedx.bytefrog.thirdparty.asm.Type;
-import com.codedx.bytefrog.thirdparty.asm.commons.AdviceAdapter;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.Handle;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.commons.AdviceAdapter;
 
 /** Adapter for instrumenting methods with entry/exit hooks and line-level tracing.
   *

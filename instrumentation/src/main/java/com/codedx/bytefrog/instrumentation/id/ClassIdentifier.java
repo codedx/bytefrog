@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
   */
 public class ClassIdentifier {
 	private final AtomicInteger nextId = new AtomicInteger();
-	private final ConcurrentHashMap<Integer, ClassInformation> map = new ConcurrentHashMap<>();
+	protected final ConcurrentHashMap<Integer, ClassInformation> map = new ConcurrentHashMap<>();
 
 	public int record(String className, String sourceFile) {
 		int id = nextId.getAndIncrement();

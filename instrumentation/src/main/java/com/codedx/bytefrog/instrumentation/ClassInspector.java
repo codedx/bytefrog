@@ -22,9 +22,9 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
-import com.codedx.bytefrog.thirdparty.asm.ClassVisitor;
-import com.codedx.bytefrog.thirdparty.asm.MethodVisitor;
-import com.codedx.bytefrog.thirdparty.asm.Opcodes;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 /** Simple class visitor that collects inspection data from MethodInspector.
   *
