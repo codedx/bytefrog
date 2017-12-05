@@ -18,6 +18,9 @@
 
 package com.codedx.bytefrog.instrumentation;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.codedx.bytefrog.instrumentation.handler.TraceHandler;
 
 import org.objectweb.asm.Label;
@@ -43,8 +46,19 @@ class MethodInstrumentor extends AdviceAdapter {
 	private final Type bitSetType = Type.getType(java.util.BitSet.class);
 	private final Type throwableType = Type.getType(Throwable.class);
 
-	boolean isPendingLineTrace = false;
-	int currentLine = 0;
+	private boolean isPendingLineTrace = false;
+	private int currentLine = 0;
+
+	// for keeping track of moved 'new' instructions (for uninitialized references in stackmap frames)
+	private class NewLocation {
+		public final Label original, replacement;
+
+		public NewLocation(Label original, Label replacement) {
+			this.original = original;
+			this.replacement = replacement;
+		}
+	}
+	private final List<NewLocation> newReplacementLocations = new ArrayList<>();
 
 	public MethodInstrumentor(final ClassInstrumentor ci, final MethodVisitor mv, final int access, final String methodName, final String desc, final int methodId, final MethodInspector.Result inspection, final TraceHandler handler) {
 		super(Opcodes.ASM5, mv, access, methodName, desc);
@@ -59,10 +73,10 @@ class MethodInstrumentor extends AdviceAdapter {
 	}
 
 	@Override protected void onMethodEnter() {
+		super.onMethodEnter();
 		initializeLineLevelInstrumentation();
 		openTryCatchWrap();
 		instrumentEntry();
-		super.onMethodEnter();
 	}
 
 	@Override public void visitLineNumber(int line, Label label) {
@@ -122,8 +136,31 @@ class MethodInstrumentor extends AdviceAdapter {
 	}
 
 	@Override public void visitTypeInsn(int opcode, String type) {
-		instrumentLine();
-		super.visitTypeInsn(opcode, type);
+		// stackmap frames may refer to 'NEW' instruction offsets when dealing with uninitialized
+		// values. because we're causing the location to change, we need to keep track of this and
+		// later rewrite any affected frames
+
+		if (opcode == Opcodes.NEW) {
+			// label the original location of the new instruction
+			Label original = new Label();
+			mv.visitLabel(original);
+
+			// inject line-level instrumentation
+			instrumentLine();
+
+			// label the replacement location of the new instruction
+			Label replacement = new Label();
+			mv.visitLabel(replacement);
+
+			// continue with the new op
+			super.visitTypeInsn(opcode, type);
+
+			// record the replacement
+			newReplacementLocations.add(new NewLocation(original, replacement));
+		} else {
+			instrumentLine();
+			super.visitTypeInsn(opcode, type);
+		}
 	}
 
 	@Override public void visitVarInsn(int opcode, int var) {
@@ -151,6 +188,42 @@ class MethodInstrumentor extends AdviceAdapter {
 
 		// COMPUTE_MAXS will take care of figuring out max stack/locals
 		super.visitMaxs(0, 0);
+	}
+
+	@Override public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
+		// rewrite uninitialized local and stack entries (ASM represents these by using labels)
+		// that have been impacted by line level coverage
+
+		Object[] localReplacement = new Object[nLocal];
+		Object[] stackReplacement = new Object[nStack];
+
+		for (int i = 0; i < nLocal; ++i) {
+			localReplacement[i] = local[i];
+
+			if (local[i] instanceof Label) {
+				int offset = ((Label)local[i]).getOffset();
+
+				for (NewLocation nl : newReplacementLocations) {
+					if (nl.original.getOffset() == offset)
+						localReplacement[i] = nl.replacement;
+				}
+			}
+		}
+
+		for (int i = 0; i < nStack; ++i) {
+			stackReplacement[i] = stack[i];
+
+			if (stack[i] instanceof Label) {
+				int offset = ((Label)stack[i]).getOffset();
+
+				for (NewLocation nl : newReplacementLocations) {
+					if (nl.original.getOffset() == offset)
+						stackReplacement[i] = nl.replacement;
+				}
+			}
+		}
+
+		super.visitFrame(type, nLocal, localReplacement, nStack, stackReplacement);
 	}
 
 
@@ -261,13 +334,13 @@ class MethodInstrumentor extends AdviceAdapter {
 	}
 
 	/** instrumentation to track method exits */
-	private void instrumentExit(boolean thrownException) {
-		if (thrownException) {
+	private void instrumentExit(boolean inCatchBlock) {
+		if (inCatchBlock) {
 			// when catching an exception, we need a full frame for the handler
 			buildCatchFrame();
 		}
 
-		handler.instrumentExit(mv, methodId, inspection, thrownException);
+		handler.instrumentExit(mv, methodId, inspection, inCatchBlock);
 		if (trackingLines) handler.instrumentLineCoverage(mv, methodId, inspection, lineMapVar);
 	}
 
