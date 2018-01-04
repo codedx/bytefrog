@@ -1,13 +1,17 @@
 val shared = Seq(
 	organization := "com.codedx",
-	scalacOptions := List("-deprecation", "-unchecked", "-feature"),
+	scalacOptions := Seq("-deprecation", "-unchecked", "-feature"),
 	scalaVersion := "2.12.4",
-	javacOptions := List("-source", "1.7", "-target", "1.7", "-Xlint:-options", "-Xlint:unchecked")
+	javacOptions := Seq("-source", "1.7", "-target", "1.7", "-Xlint:-options")
 )
 
 val javaOnly = Seq(
 	autoScalaLibrary := false,
 	crossPaths := false
+)
+
+val javaWarnings = Seq(
+	javacOptions ++= Seq("-Xlint:unchecked")
 )
 
 val withTesting = Seq(
@@ -17,12 +21,15 @@ val withTesting = Seq(
 )
 
 lazy val Instrumentation = (project in file("instrumentation"))
+	.dependsOn(SourceMapParser)
 	.settings(
 		shared,
 		javaOnly,
+		javaWarnings,
 		withTesting,
 
-		libraryDependencies ++= Dependencies.asm
+		libraryDependencies ++= Dependencies.asm,
+		libraryDependencies += Dependencies.minlog
 	)
 
 lazy val FilterInjector = (project in file("filter-injector"))
@@ -30,15 +37,23 @@ lazy val FilterInjector = (project in file("filter-injector"))
 	.settings(
 		shared,
 		javaOnly,
+		javaWarnings,
 
 		libraryDependencies ++= Dependencies.asm,
 		libraryDependencies += Dependencies.minlog
+	)
+
+lazy val SourceMapParser = (project in file("sourcemap-parser"))
+	.settings(
+		shared,
+		javaOnly
 	)
 
 lazy val Util = (project in file("util"))
 	.settings(
 		shared,
 		javaOnly,
+		javaWarnings,
 		withTesting,
 
 		libraryDependencies ++= Dependencies.asm,
@@ -46,4 +61,4 @@ lazy val Util = (project in file("util"))
 	)
 
 lazy val Stack = (project in file("."))
-	.aggregate(Instrumentation, FilterInjector, Util)
+	.aggregate(Instrumentation, FilterInjector, SourceMapParser, Util)

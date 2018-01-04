@@ -26,12 +26,16 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-/** Simple class visitor that collects inspection data from MethodInspector.
+import com.esotericsoftware.minlog.Log;
+
+/** Simple class visitor that collects inspection data from MethodInspector. This includes
+  * the ability to map line level information from the provided source map
   *
   * @author robertf
   */
 public class ClassInspector extends ClassVisitor {
 	private String fileName = null;
+	private LineLevelMapper llm = null;
 	private LinkedList<MethodInspector> inspectors = new LinkedList<>();
 
 	public ClassInspector() {
@@ -44,6 +48,7 @@ public class ClassInspector extends ClassVisitor {
 
 	@Override public void visitSource(String source, String debug) {
 		this.fileName = source;
+		if (debug != null) llm = LineLevelMapper.parse(source, debug);
 		super.visitSource(source, debug);
 	}
 
@@ -56,11 +61,14 @@ public class ClassInspector extends ClassVisitor {
 	/** Describes the results from pre-instrumentation inspection of a class. */
 	public static class Result {
 		private final String fileName;
+		private final LineLevelMapper lineLevelMapper;
 
 		public String getFileName() { return fileName; }
+		public LineLevelMapper getLineLevelMapper() { return lineLevelMapper; }
 
-		public Result(String fileName, LinkedList<MethodInspector> inspectors) {
+		public Result(String fileName, LineLevelMapper lineLevelMapper, LinkedList<MethodInspector> inspectors) {
 			this.fileName = fileName;
+			this.lineLevelMapper = lineLevelMapper;
 
 			for (MethodInspector mi : inspectors) {
 				final MethodInspector.Result inspection = mi.getResult(this);
@@ -81,6 +89,6 @@ public class ClassInspector extends ClassVisitor {
 	}
 
 	public Result getResult() {
-		return new Result(fileName, inspectors);
+		return new Result(fileName, llm, inspectors);
 	}
 }
