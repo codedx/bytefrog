@@ -142,7 +142,7 @@ public class LineLevelMapper {
 				if (mappingsForLine != null) for (MappedLocation loc : mappingsForLine) {
 					BitSet ls = resultMap.get(loc.path);
 					if (ls == null) resultMap.put(loc.path, ls = new BitSet());
-					ls.set(loc.line);
+					ls.set(loc.line - 1);
 				}
 			}
 
