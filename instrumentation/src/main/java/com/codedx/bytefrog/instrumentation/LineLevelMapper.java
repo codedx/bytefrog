@@ -138,11 +138,11 @@ public class LineLevelMapper {
 			Map<String, BitSet> resultMap = new HashMap<>();
 
 			for (int l = lines.nextSetBit(0); l >= 0; l = lines.nextSetBit(l + 1)) {
-				MappedLocation[] mappingsForLine = mappings.get(l);
+				MappedLocation[] mappingsForLine = mappings.get(startLine + l);
 				if (mappingsForLine != null) for (MappedLocation loc : mappingsForLine) {
 					BitSet ls = resultMap.get(loc.path);
 					if (ls == null) resultMap.put(loc.path, ls = new BitSet());
-					ls.set(l + startLine - 1);
+					ls.set(loc.line);
 				}
 			}
 
