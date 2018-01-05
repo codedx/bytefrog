@@ -49,7 +49,7 @@ public class TraceMethodAdapter extends AdviceAdapter implements Opcodes
 	public TraceMethodAdapter(String className, String methodName, String desc, int access,
 			MethodVisitor mv)
 	{
-		super(ASM4, mv, access, methodName, desc);
+		super(ASM5, mv, access, methodName, desc);
 		this.methodSignature = className + "." + methodName + ";" + access + ";" + desc;
 	}
 

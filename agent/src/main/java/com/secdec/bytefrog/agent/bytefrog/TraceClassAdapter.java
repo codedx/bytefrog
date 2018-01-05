@@ -38,7 +38,7 @@ public class TraceClassAdapter extends ClassVisitor implements Opcodes
 	 */
 	public TraceClassAdapter(final ClassVisitor cv, String className)
 	{
-		super(ASM4, cv);
+		super(ASM5, cv);
 
 		this.className = className;
 	}
