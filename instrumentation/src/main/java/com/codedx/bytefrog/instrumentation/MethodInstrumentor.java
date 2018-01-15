@@ -30,6 +30,8 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.AdviceAdapter;
 
+import com.esotericsoftware.minlog.Log;
+
 /** Adapter for instrumenting methods with entry/exit hooks and line-level tracing.
   *
   * @author robertf
@@ -40,12 +42,14 @@ class MethodInstrumentor extends AdviceAdapter {
 	private final String desc;
 	private final int methodId;
 	private final MethodInspector.Result inspection;
+	private final boolean isConstructor;
 
 	private final TraceHandler handler;
 
 	private final Type bitSetType = Type.getType(java.util.BitSet.class);
 	private final Type throwableType = Type.getType(Throwable.class);
 
+	private boolean hasEntered = false, canInstrument = true;
 	private boolean isPendingLineTrace = false;
 	private int currentLine = 0;
 
@@ -68,15 +72,38 @@ class MethodInstrumentor extends AdviceAdapter {
 		this.desc = desc;
 		this.methodId = methodId;
 		this.inspection = inspection;
+		isConstructor = methodName.equals("<init>");
 
 		this.handler = handler;
 	}
 
+	@Override public void visitCode() {
+		super.visitCode();
+
+		if (isConstructor) {
+			initializeLineLevelInstrumentation();
+		}
+	}
+
 	@Override protected void onMethodEnter() {
 		super.onMethodEnter();
-		initializeLineLevelInstrumentation();
-		openTryCatchWrap();
-		instrumentEntry();
+
+		if (!isConstructor) {
+			initializeLineLevelInstrumentation();
+		}
+
+		if (canInstrument && !hasEntered) {
+			openTryCatchWrap();
+			instrumentEntry();
+			hasEntered = true;
+		} else {
+			if (Log.DEBUG) Log.debug("method instrumentation", String.format("cannot instrument method %s.%s:%s; skipping", ci.getName(), inspection.getName(), desc));
+		}
+
+		if (hasEntered && isPendingLineTrace) {
+			instrumentLine();
+			if (Log.DEBUG) Log.debug("method instrumentation", String.format("line level coverage for %s lines %d-%d potentially missing", inspection.getClassInspection().getFileName(), inspection.getStartLine(), currentLine));
+		}
 	}
 
 	@Override public void visitLineNumber(int line, Label label) {
@@ -108,6 +135,13 @@ class MethodInstrumentor extends AdviceAdapter {
 	@Override public void visitJumpInsn(int opcode, Label label) {
 		instrumentLine();
 		super.visitJumpInsn(opcode, label);
+
+		// any jumping in constructors prior to super constructor call is branching, and too
+		// complex for us to instrument currently
+		if (isConstructor && !hasEntered) {
+			canInstrument = false;
+			if (Log.TRACE) Log.trace("method instrumentation", String.format("jump encountered in constructor %s.%s:%s prior to object initialization; unable to instrument", ci.getName(), inspection.getName(), desc));
+		}
 	}
 
 	@Override public void visitLdcInsn(Object cst) {
@@ -118,6 +152,12 @@ class MethodInstrumentor extends AdviceAdapter {
 	@Override public void visitLookupSwitchInsn(Label dflt, int[] keys, Label[] labels) {
 		instrumentLine();
 		super.visitLookupSwitchInsn(dflt, keys, labels);
+
+		// this is branching, too complex prior to super constructor call
+		if (isConstructor && !hasEntered) {
+			canInstrument = false;
+			if (Log.TRACE) Log.trace("method instrumentation", String.format("lookup switch encountered in constructor %s.%s:%s prior to object initialization; unable to instrument", ci.getName(), inspection.getName(), desc));
+		}
 	}
 
 	@Override public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
@@ -133,6 +173,12 @@ class MethodInstrumentor extends AdviceAdapter {
 	@Override public void visitTableSwitchInsn(int min, int max, Label dflt, Label... labels) {
 		instrumentLine();
 		super.visitTableSwitchInsn(min, max, dflt, labels);
+
+		// this is branching, too complex prior to super constructor call
+		if (isConstructor && !hasEntered) {
+			canInstrument = false;
+			if (Log.TRACE) Log.trace("method instrumentation", String.format("table switch encountered in constructor %s.%s:%s prior to object initialization; unable to instrument", ci.getName(), inspection.getName(), desc));
+		}
 	}
 
 	@Override public void visitTypeInsn(int opcode, String type) {
@@ -166,6 +212,13 @@ class MethodInstrumentor extends AdviceAdapter {
 	@Override public void visitVarInsn(int opcode, int var) {
 		instrumentLine();
 		super.visitVarInsn(opcode, var);
+
+		// for constructors, a RET call is a form of branching, so this sort of complexity before
+		// a super constructor call means we can't easily instrument
+		if (isConstructor && !hasEntered && opcode == Opcodes.RET) {
+			canInstrument = false;
+			if (Log.TRACE) Log.trace("method instrumentation", String.format("ret encountered in constructor %s.%s:%s prior to object initialization; unable to instrument", ci.getName(), inspection.getName(), desc));
+		}
 	}
 
 	@Override public void visitIincInsn(int var, int increment) {
@@ -177,14 +230,16 @@ class MethodInstrumentor extends AdviceAdapter {
 		super.onMethodExit(opcode);
 
 		// if we're exiting via a throw, our try/catch will handle it
-		if (opcode != Opcodes.ATHROW) {
+		if (hasEntered && opcode != Opcodes.ATHROW) {
 			instrumentExit(false);
 		}
 	}
 
 	@Override public void visitMaxs(int maxStack, int maxLocals) {
 		// visitMaxs is called after the code is complete, so we close our top level try/catch block here
-		closeTryCatchWrap();
+		if (hasEntered) {
+			closeTryCatchWrap();
+		}
 
 		// COMPUTE_MAXS will take care of figuring out max stack/locals
 		super.visitMaxs(0, 0);
@@ -256,17 +311,26 @@ class MethodInstrumentor extends AdviceAdapter {
 		}
 	}
 
+
+	private boolean catchingExceptions = false;
+
 	/** instrumentation to observe exceptions bubbling out of the method */
 	private void openTryCatchWrap() {
 		// insert start label for the try block
 		mv.visitLabel(methodBegin);
+		catchingExceptions = true;
 	}
 
 	/** instrumentation to observe exceptions bubbling out of the method */
 	private void closeTryCatchWrap() {
+		if (!catchingExceptions) return;
+
 		// wire up our try/catch around the whole method, so we can observe exception bubbling
 		mv.visitTryCatchBlock(methodBegin, methodEnd, methodEnd, null);
 		mv.visitLabel(methodEnd);
+
+		// when catching an exception, we need a full frame for the handler
+		buildCatchFrame();
 
 		instrumentExit(true);
 
@@ -335,18 +399,13 @@ class MethodInstrumentor extends AdviceAdapter {
 
 	/** instrumentation to track method exits */
 	private void instrumentExit(boolean inCatchBlock) {
-		if (inCatchBlock) {
-			// when catching an exception, we need a full frame for the handler
-			buildCatchFrame();
-		}
-
 		handler.instrumentExit(mv, methodId, inspection, inCatchBlock);
 		if (trackingLines) handler.instrumentLineCoverage(mv, methodId, inspection, lineMapVar);
 	}
 
 	/** instrumentation to track line-level execution */
 	private void instrumentLine() {
-		if (trackingLines && isPendingLineTrace) {
+		if (canInstrument && trackingLines && isPendingLineTrace) {
 			// `lineMap`.set(line - startLine)
 			mv.visitVarInsn(Opcodes.ALOAD, lineMapVar);
 			BytecodeUtil.pushInt(mv, currentLine - inspection.getStartLine());

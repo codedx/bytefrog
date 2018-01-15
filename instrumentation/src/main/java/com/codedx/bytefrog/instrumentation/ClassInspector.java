@@ -26,8 +26,6 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-import com.esotericsoftware.minlog.Log;
-
 /** Simple class visitor that collects inspection data from MethodInspector. This includes
   * the ability to map line level information from the provided source map
   *
